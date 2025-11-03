@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Mock Test - Learn German{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body p-5">
+        <div class="text-center mb-4">
+            <h5 class="text-muted">Mock {{ test_type.title() }} Test</h5>
+            <h6 class="text-muted">Question {{ question_num }} of {{ total }}</h6>
+        </div>
+
+        <div class="word-card">
+            {% if test_type == 'vocabulary' %}
+                <div class="german-word">{{ question.english }}</div>
+                <p class="text-muted">What is this in German?</p>
+
+                <form id="testForm" onsubmit="submitAnswer(event)">
+                    <div class="mt-4">
+                        <input type="text" name="answer" id="answerInput" class="form-control form-control-lg text-center"
+                               placeholder="Type your answer..." required autofocus>
+                    </div>
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">Check Answer</button>
+                    </div>
+                </form>
+            {% else %}
+                <div class="german-word">{{ question.english }}</div>
+                <p class="text-muted">Conjugate this verb in present tense</p>
+
+                <form id="testForm" onsubmit="submitAnswer(event)">
+                    <table class="table mt-4">
+                        <tbody>
+                            <tr>
+                                <td class="pronoun" style="width: 150px;">ich</td>
+                                <td><input type="text" name="ich" class="form-control" required autofocus></td>
+                            </tr>
+                            <tr>
+                                <td class="pronoun">du</td>
+                                <td><input type="text" name="du" class="form-control" required></td>
+                            </tr>
+                            <tr>
+                                <td class="pronoun">er/sie/es</td>
+                                <td><input type="text" name="er_sie_es" class="form-control" required></td>
+                            </tr>
+                            <tr>
+                                <td class="pronoun">wir</td>
+                                <td><input type="text" name="wir" class="form-control" required></td>
+                            </tr>
+                            <tr>
+                                <td class="pronoun">ihr</td>
+                                <td><input type="text" name="ihr" class="form-control" required></td>
+                            </tr>
+                            <tr>
+                                <td class="pronoun">sie/Sie</td>
+                                <td><input type="text" name="sie_Sie" class="form-control" required></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">Check Answer</button>
+                    </div>
+                </form>
+            {% endif %}
+
+            <div id="feedback" style="display: none;" class="mt-4"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+function submitAnswer(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    const submitBtn = document.getElementById('submitBtn');
+    const answerInput = document.getElementById('answerInput');
+
+    submitBtn.disabled = true;
+    if (answerInput) {
+        answerInput.disabled = true;
+    }
+
+    fetch('{{ url_for("submit_mock_answer") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Server error: ' + response.status);
+        }
+        return response.json();
+    })
+    .then(data => {
+        const feedback = document.getElementById('feedback');
+        let feedbackHtml = '';
+
+        if (data.results) {
+            // Verb conjugation results
+            const correctCount = Object.values(data.results).filter(r => r.correct).length;
+            const totalCount = Object.keys(data.results).length;
+
+            feedbackHtml = `
+                <div class="alert ${correctCount === totalCount ? 'alert-success' : 'alert-warning'}">
+                    <h4>${correctCount === totalCount ? '✓ Perfect!' : '⚠️ Partial Credit'}</h4>
+                    <p>You got ${correctCount} out of ${totalCount} correct</p>
+                </div>
+                <table class="table">
+                    <tbody>
+            `;
+
+            const pronouns = {
+                'ich': 'ich',
+                'du': 'du',
+                'er_sie_es': 'er/sie/es',
+                'wir': 'wir',
+                'ihr': 'ihr',
+                'sie_Sie': 'sie/Sie'
+            };
+
+            for (const [key, pronoun] of Object.entries(pronouns)) {
+                const result = data.results[key];
+                const cssClass = result.correct ? 'result-correct' : 'result-incorrect';
+                const icon = result.correct ? '✓' : '✗';
+
+                feedbackHtml += `
+                    <tr>
+                        <td class="pronoun" style="width: 150px;">${pronoun}</td>
+                        <td class="text-start">
+                            <span class="${cssClass}">${icon} ${result.user_answer}</span>
+                            ${!result.correct ? `<br><small>Correct: ${result.correct_answer}</small>` : ''}
+                        </td>
+                    </tr>
+                `;
+            }
+
+            feedbackHtml += '</tbody></table>';
+        } else {
+            // Vocabulary result
+            if (data.is_correct) {
+                feedbackHtml = `
+                    <div class="alert alert-success">
+                        <h4>✓ Correct!</h4>
+                        <p class="mb-0">${data.correct_answer}</p>
+                    </div>
+                `;
+            } else {
+                feedbackHtml = `
+                    <div class="alert alert-danger">
+                        <h4>✗ Incorrect</h4>
+                        <p class="mb-0">Correct answer: ${data.correct_answer}</p>
+                    </div>
+                `;
+            }
+        }
+
+        if (data.has_more) {
+            feedbackHtml += '<button onclick="nextQuestion()" class="btn btn-success btn-lg mt-3" id="nextBtn">Next Question →</button>';
+        } else {
+            feedbackHtml += '<button onclick="finishTest()" class="btn btn-success btn-lg mt-3" id="nextBtn">Finish Test</button>';
+        }
+
+        feedback.innerHTML = feedbackHtml;
+        feedback.style.display = 'block';
+        form.style.display = 'none';
+
+        // Focus the next button and add Enter key listener
+        setTimeout(() => {
+            document.getElementById('nextBtn').focus();
+            document.addEventListener('keypress', handleEnterKey);
+        }, 100);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+        submitBtn.disabled = false;
+        if (answerInput) {
+            answerInput.disabled = false;
+        }
+    });
+}
+
+function handleEnterKey(e) {
+    if (e.key === 'Enter') {
+        document.removeEventListener('keypress', handleEnterKey);
+        const nextBtn = document.getElementById('nextBtn');
+        if (nextBtn) {
+            nextBtn.click();
+        }
+    }
+}
+
+function nextQuestion() {
+    document.removeEventListener('keypress', handleEnterKey);
+    window.location.href = '{{ url_for("mock_test", test_type=test_type, direction=direction) }}';
+}
+
+function finishTest() {
+    document.removeEventListener('keypress', handleEnterKey);
+    window.location.href = '{{ url_for("test_complete") }}';
+}
+</script>
+{% endblock %}

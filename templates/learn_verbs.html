@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Learn Verbs - Learn German{% endblock %}
+
+{% block content %}
+{% if verb %}
+<div class="verb-card">
+    <h2 class="mb-4">{{ verb.infinitive }}</h2>
+    <p class="english-translation mb-5">{{ verb.english }}</p>
+
+    <div id="conjugationDisplay" class="conjugation-table">
+        <table class="table table-borderless">
+            <tbody>
+                <tr>
+                    <td class="pronoun" style="width: 150px;">ich</td>
+                    <td class="text-start"><strong>{{ verb.ich }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="pronoun">du</td>
+                    <td class="text-start"><strong>{{ verb.du }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="pronoun">er/sie/es</td>
+                    <td class="text-start"><strong>{{ verb.er_sie_es }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="pronoun">wir</td>
+                    <td class="text-start"><strong>{{ verb.wir }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="pronoun">ihr</td>
+                    <td class="text-start"><strong>{{ verb.ihr }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="pronoun">sie/Sie</td>
+                    <td class="text-start"><strong>{{ verb.sie_Sie }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="practiceButtons">
+        <button onclick="showPractice()" class="btn btn-warning btn-lg me-2">Now You Do It!</button>
+        <a href="{{ url_for('learn_verbs') }}" class="btn btn-success btn-lg">Next Verb →</a>
+    </div>
+
+    <div id="practiceForm" style="display: none;">
+        <form id="verbForm" onsubmit="checkAnswers(event)">
+            <table class="table">
+                <tbody>
+                    <tr>
+                        <td class="pronoun" style="width: 150px;">ich</td>
+                        <td><input type="text" name="ich" class="form-control" required></td>
+                    </tr>
+                    <tr>
+                        <td class="pronoun">du</td>
+                        <td><input type="text" name="du" class="form-control" required></td>
+                    </tr>
+                    <tr>
+                        <td class="pronoun">er/sie/es</td>
+                        <td><input type="text" name="er_sie_es" class="form-control" required></td>
+                    </tr>
+                    <tr>
+                        <td class="pronoun">wir</td>
+                        <td><input type="text" name="wir" class="form-control" required></td>
+                    </tr>
+                    <tr>
+                        <td class="pronoun">ihr</td>
+                        <td><input type="text" name="ihr" class="form-control" required></td>
+                    </tr>
+                    <tr>
+                        <td class="pronoun">sie/Sie</td>
+                        <td><input type="text" name="sie_Sie" class="form-control" required></td>
+                    </tr>
+                </tbody>
+            </table>
+            <button type="submit" class="btn btn-primary btn-lg">Check Answers</button>
+        </form>
+    </div>
+
+    <div id="results" style="display: none;" class="mt-4"></div>
+</div>
+
+<script>
+// Add Enter key listener for "Next Verb" button in study mode
+document.addEventListener('DOMContentLoaded', function() {
+    const practiceButtons = document.getElementById('practiceButtons');
+    if (practiceButtons) {
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && practiceButtons.style.display !== 'none') {
+                const nextVerbLink = practiceButtons.querySelector('a[href*="learn-verbs"]');
+                if (nextVerbLink) {
+                    nextVerbLink.click();
+                }
+            }
+        });
+    }
+});
+
+function showPractice() {
+    document.getElementById('conjugationDisplay').style.display = 'none';
+    document.getElementById('practiceButtons').style.display = 'none';
+    document.getElementById('practiceForm').style.display = 'block';
+    document.querySelector('#practiceForm input').focus();
+}
+
+function checkAnswers(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+
+    fetch('{{ url_for("check_verb", verb_id=verb.id) }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        let resultsHtml = '<div class="conjugation-table"><table class="table">';
+
+        const pronouns = {
+            'ich': 'ich',
+            'du': 'du',
+            'er_sie_es': 'er/sie/es',
+            'wir': 'wir',
+            'ihr': 'ihr',
+            'sie_Sie': 'sie/Sie'
+        };
+
+        for (const [key, pronoun] of Object.entries(pronouns)) {
+            const result = data.results[key];
+            const cssClass = result.correct ? 'result-correct' : 'result-incorrect';
+            const icon = result.correct ? '✓' : '✗';
+
+            resultsHtml += `
+                <tr>
+                    <td class="pronoun" style="width: 150px;">${pronoun}</td>
+                    <td class="text-start">
+                        <span class="${cssClass}">${icon} ${result.user_answer}</span>
+                        ${!result.correct ? `<br><small>Correct: ${result.correct_answer}</small>` : ''}
+                    </td>
+                </tr>
+            `;
+        }
+
+        resultsHtml += '</table></div>';
+
+        if (data.all_correct) {
+            resultsHtml += '<div class="alert alert-success mt-3">Perfect! All answers correct! 🎉</div>';
+        } else {
+            resultsHtml += '<div class="alert alert-warning mt-3">Keep practicing! Review the mistakes above.</div>';
+        }
+
+        resultsHtml += '<a href="{{ url_for("learn_verbs") }}" class="btn btn-success btn-lg mt-3" id="nextVerbBtn">Next Verb →</a>';
+
+        document.getElementById('results').innerHTML = resultsHtml;
+        document.getElementById('practiceForm').style.display = 'none';
+        document.getElementById('results').style.display = 'block';
+
+        // Add Enter key listener for next verb button
+        setTimeout(() => {
+            const nextBtn = document.getElementById('nextVerbBtn');
+            if (nextBtn) {
+                nextBtn.focus();
+                document.addEventListener('keypress', function handleEnter(e) {
+                    if (e.key === 'Enter') {
+                        document.removeEventListener('keypress', handleEnter);
+                        nextBtn.click();
+                    }
+                });
+            }
+        }, 100);
+    });
+}
+</script>
+{% else %}
+<div class="card">
+    <div class="card-body text-center p-5">
+        <h2>No verbs available</h2>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

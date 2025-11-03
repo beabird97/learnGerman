@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Learn Vocabulary - Learn German{% endblock %}
+
+{% block content %}
+{% if word %}
+<div class="word-card">
+    <div id="wordDisplay">
+        <div class="mb-4">
+            <span class="badge {% if word.article == 'der' %}bg-primary{% elif word.article == 'die' %}bg-danger{% elif word.article == 'das' %}bg-success{% else %}bg-secondary{% endif %}" style="font-size: 2rem; padding: 10px 20px;">{{ word.article }}</span>
+        </div>
+        <div class="german-word">{{ word.german }}</div>
+        <div class="english-translation">{{ word.english }}</div>
+
+        <div class="mt-5" id="studyButtons">
+            <button onclick="showPractice()" class="btn btn-warning btn-lg me-2">Now You Do It!</button>
+            <a href="{{ url_for('mark_word_learned', word_id=word.id) }}" class="btn btn-success btn-lg">Next Word →</a>
+        </div>
+    </div>
+
+    <div id="practiceForm" style="display: none;">
+        <div class="english-translation mb-5">{{ word.english }}</div>
+        <p class="text-muted mb-4">Type the German word (with or without article)</p>
+
+        <form onsubmit="checkAnswer(event)">
+            <div class="mb-4">
+                <input type="text" id="wordInput" class="form-control form-control-lg text-center"
+                       placeholder="Type the German word..." required autofocus>
+                <small class="text-muted">Tip: You can type ae/oe/ue/ss instead of ä/ö/ü/ß</small>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg">Check Answer</button>
+        </form>
+    </div>
+
+    <div id="results" style="display: none;" class="mt-4"></div>
+</div>
+
+<script>
+let globalEnterListener = null;
+
+// Add Enter key listener for "Next Word" button in study mode
+document.addEventListener('DOMContentLoaded', function() {
+    enableStudyModeEnterKey();
+});
+
+function enableStudyModeEnterKey() {
+    // Remove any existing listener first
+    if (globalEnterListener) {
+        document.removeEventListener('keypress', globalEnterListener);
+    }
+
+    globalEnterListener = function(e) {
+        const wordDisplay = document.getElementById('wordDisplay');
+        if (e.key === 'Enter' && wordDisplay && wordDisplay.style.display !== 'none') {
+            const nextWordLink = document.querySelector('a[href*="mark-word-learned"]');
+            if (nextWordLink) {
+                nextWordLink.click();
+            }
+        }
+    };
+
+    document.addEventListener('keypress', globalEnterListener);
+}
+
+function disableStudyModeEnterKey() {
+    if (globalEnterListener) {
+        document.removeEventListener('keypress', globalEnterListener);
+        globalEnterListener = null;
+    }
+}
+
+function showPractice() {
+    document.getElementById('wordDisplay').style.display = 'none';
+    document.getElementById('practiceForm').style.display = 'block';
+    document.getElementById('wordInput').focus();
+    // Disable the global Enter listener while in practice mode
+    disableStudyModeEnterKey();
+}
+
+function checkAnswer(event) {
+    event.preventDefault();
+    const userAnswer = document.getElementById('wordInput').value.trim();
+
+    fetch('{{ url_for("check_word", word_id=word.id) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'answer=' + encodeURIComponent(userAnswer)
+    })
+    .then(response => response.json())
+    .then(data => {
+        let resultsHtml = '<div class="card p-4">';
+
+        if (data.is_correct) {
+            resultsHtml += `
+                <div class="text-center">
+                    <h3 class="text-success">✓ Correct!</h3>
+                    <p class="german-word">${data.correct_answer}</p>
+                    <p class="english-translation">${data.english}</p>
+                    <div class="alert alert-success mt-3">Perfect! 🎉</div>
+                </div>
+            `;
+        } else {
+            resultsHtml += `
+                <div class="text-center">
+                    <h3 class="text-danger">✗ Not quite</h3>
+                    <p><strong>Your answer:</strong> ${data.user_answer}</p>
+                    <p><strong>Correct answer:</strong> <span class="german-word">${data.correct_answer}</span></p>
+                    <p class="english-translation">${data.english}</p>
+                    <div class="alert alert-warning mt-3">Keep practicing!</div>
+                </div>
+            `;
+        }
+
+        resultsHtml += '<a href="{{ url_for("learn_vocabulary") }}" class="btn btn-success btn-lg mt-3" id="nextWordBtn">Next Word →</a>';
+        resultsHtml += '</div>';
+
+        document.getElementById('results').innerHTML = resultsHtml;
+        document.getElementById('practiceForm').style.display = 'none';
+        document.getElementById('results').style.display = 'block';
+
+        // Add Enter key listener for next word button
+        setTimeout(() => {
+            const nextBtn = document.getElementById('nextWordBtn');
+            if (nextBtn) {
+                nextBtn.focus();
+
+                // Create a named function so we can remove it properly
+                function handleResultsEnter(e) {
+                    if (e.key === 'Enter') {
+                        document.removeEventListener('keypress', handleResultsEnter);
+                        nextBtn.click();
+                    }
+                }
+
+                document.addEventListener('keypress', handleResultsEnter);
+            }
+        }, 100);
+    })
+    .catch(error => {
+        console.error('Error checking answer:', error);
+        alert('An error occurred. Please try again.');
+        // Re-enable the global Enter listener if there's an error
+        enableStudyModeEnterKey();
+    });
+}
+</script>
+{% else %}
+<div class="card">
+    <div class="card-body text-center p-5">
+        <h2>No words available</h2>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

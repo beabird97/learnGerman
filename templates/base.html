@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Learn German{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'JetBrains Mono', monospace;
+            color: #000;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+            background: white;
+        }
+
+        .btn {
+            border-radius: 5px;
+            font-weight: 500;
+            padding: 12px 24px;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-primary {
+            background: #0066cc;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: black;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-outline-secondary {
+            background: white;
+            color: #000;
+            border: 1px solid #ccc;
+        }
+
+        .btn-lg {
+            padding: 16px 32px;
+            font-size: 1.1rem;
+        }
+
+        .container {
+            max-width: 900px;
+        }
+
+        .navbar {
+            background: white;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border: 1px solid #ddd;
+        }
+
+        .word-card, .verb-card {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 30px 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border: 1px solid #ddd;
+        }
+
+        .german-word {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #000;
+            margin-bottom: 20px;
+        }
+
+        .english-translation {
+            font-size: 1.5rem;
+            color: #000;
+        }
+
+        .conjugation-table {
+            margin: 30px 0;
+        }
+
+        .conjugation-table input {
+            font-family: 'JetBrains Mono', monospace;
+            text-align: center;
+            border: 2px solid #000;
+            border-radius: 5px;
+            padding: 10px;
+            color: #000;
+        }
+
+        .pronoun {
+            font-weight: 600;
+            color: #000;
+        }
+
+        .result-correct {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .result-incorrect {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .progress-stat {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+        }
+
+        .progress-stat h3 {
+            color: #000;
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+        }
+
+        .progress-stat p {
+            color: #000;
+            margin: 0;
+        }
+
+        .test-result {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #ddd;
+        }
+
+        .grade {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .grade-A { color: #28a745; }
+        .grade-B { color: #17a2b8; }
+        .grade-C { color: #ffc107; }
+        .grade-D { color: #fd7e14; }
+        .grade-F { color: #dc3545; }
+
+        .alert {
+            color: #000;
+        }
+
+        .text-muted {
+            color: #666 !important;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: #000;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% if session.user_id %}
+    <div class="container">
+        <nav class="navbar">
+            <div class="container-fluid">
+                <span class="navbar-brand mb-0 h1">Learn German</span>
+                <div class="d-flex align-items-center">
+                    <span class="me-3">Welcome, {{ session.username }}!</span>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-primary me-2">Dashboard</a>
+                    <a href="{{ url_for('logout') }}" class="btn btn-sm btn-danger">Logout</a>
+                </div>
+            </div>
+        </nav>
+    </div>
+    {% endif %}
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else (category if category != 'message' else 'info') }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

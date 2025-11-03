@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}My Progress - Learn German{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body p-5">
+        <h1 class="text-center mb-5">My Progress</h1>
+
+        <div class="row mb-5">
+            <div class="col-md-3">
+                <div class="progress-stat" style="min-height: 120px; display: flex; flex-direction: column; justify-content: center;">
+                    <h3>{{ total_time }}</h3>
+                    <p>Total Minutes</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="progress-stat" style="min-height: 120px; display: flex; flex-direction: column; justify-content: center;">
+                    <h3>{{ today_time }}</h3>
+                    <p>Today's Minutes</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="progress-stat" style="min-height: 120px; display: flex; flex-direction: column; justify-content: center;">
+                    <h3>{{ progress.words_learned }}</h3>
+                    <p>Words Studied</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="progress-stat" style="min-height: 120px; display: flex; flex-direction: column; justify-content: center;">
+                    <h3>{{ progress.verbs_learned }}</h3>
+                    <p>Verbs Practiced</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-5">
+            <h3 class="mb-4">Learning Progress</h3>
+
+            <div class="mb-4">
+                <div class="d-flex justify-content-between mb-2">
+                    <strong>Vocabulary Progress</strong>
+                    <span>{{ progress.words_learned }} / {{ total_words }} words ({{ ((progress.words_learned / total_words * 100)|round(1)) if total_words > 0 else 0 }}%)</span>
+                </div>
+                <div class="progress" style="height: 30px;">
+                    <div class="progress-bar bg-success" role="progressbar"
+                         style="width: {{ ((progress.words_learned / total_words * 100)|round(1)) if total_words > 0 else 0 }}%">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <div class="d-flex justify-content-between mb-2">
+                    <strong>Verb Conjugations</strong>
+                    <span>{{ progress.verbs_learned }} / {{ total_verbs }} verbs ({{ ((progress.verbs_learned / total_verbs * 100)|round(1)) if total_verbs > 0 else 0 }}%)</span>
+                </div>
+                <div class="progress" style="height: 30px;">
+                    <div class="progress-bar bg-info" role="progressbar"
+                         style="width: {{ ((progress.verbs_learned / total_verbs * 100)|round(1)) if total_verbs > 0 else 0 }}%">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <div class="d-flex justify-content-between mb-2">
+                    <strong>Overall Progress</strong>
+                    <span>{{ progress.words_learned + progress.verbs_learned }} / {{ total_words + total_verbs }} items</span>
+                </div>
+                <div class="progress" style="height: 30px;">
+                    <div class="progress-bar bg-primary" role="progressbar"
+                         style="width: {{ (((progress.words_learned + progress.verbs_learned) / (total_words + total_verbs) * 100)|round(1)) if (total_words + total_verbs) > 0 else 0 }}%">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="mb-4">Real Test Results</h3>
+        {% if real_tests %}
+        <div class="mb-5">
+            {% for item in real_tests %}
+            <div class="test-result">
+                <div>
+                    <strong>{{ item.test.test_type.title() }} Test</strong>
+                    <br>
+                    <small class="text-muted">{{ (item.test.date|localtime).strftime('%Y-%m-%d %H:%M') }}</small>
+                    {% if item.mistakes %}
+                    <br>
+                    <small style="font-size: 0.75rem; color: #999;">Missed: {{ item.mistakes|join(', ') }}</small>
+                    {% endif %}
+                </div>
+                <div>
+                    <span class="me-3">{{ item.test.score }}/{{ item.test.total }} ({{ item.test.percentage|round(1) }}%)</span>
+                    <span class="grade grade-{{ 'A' if item.test.percentage >= 90 else 'B' if item.test.percentage >= 80 else 'C' if item.test.percentage >= 70 else 'D' if item.test.percentage >= 60 else 'F' }}">
+                        {{ 'A' if item.test.percentage >= 90 else 'B' if item.test.percentage >= 80 else 'C' if item.test.percentage >= 70 else 'D' if item.test.percentage >= 60 else 'F' }}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted text-center mb-5">No real tests taken yet. Take your first test!</p>
+        {% endif %}
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="mb-0">Mock Test Trends (Last 10)</h3>
+            {% if mock_tests %}
+            <button onclick="clearMockTests()" class="btn btn-outline-danger btn-sm">Clear Mock Tests</button>
+            {% endif %}
+        </div>
+        {% if mock_tests %}
+        <div class="mb-4">
+            <canvas id="mockTestChart" width="400" height="200"></canvas>
+        </div>
+        <div>
+            {% for item in mock_tests %}
+            <div class="test-result">
+                <div>
+                    <strong>{{ item.test.test_type.title() }} Mock Test</strong>
+                    <br>
+                    <small class="text-muted">{{ (item.test.date|localtime).strftime('%Y-%m-%d %H:%M') }}</small>
+                    {% if item.mistakes %}
+                    <br>
+                    <small style="font-size: 0.75rem; color: #999;">Missed: {{ item.mistakes|join(', ') }}</small>
+                    {% endif %}
+                </div>
+                <div>
+                    <span class="grade grade-{{ 'A' if item.test.percentage >= 90 else 'B' if item.test.percentage >= 80 else 'C' if item.test.percentage >= 70 else 'D' if item.test.percentage >= 60 else 'F' }}" style="font-size: 1.5rem; font-weight: 700;">
+                        {{ 'A' if item.test.percentage >= 90 else 'B' if item.test.percentage >= 80 else 'C' if item.test.percentage >= 70 else 'D' if item.test.percentage >= 60 else 'F' }}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted text-center">No mock tests taken yet. Practice makes perfect!</p>
+        {% endif %}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+{% if mock_tests %}
+const ctx = document.getElementById('mockTestChart').getContext('2d');
+const mockTestChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: [{% for item in mock_tests|reverse %}'{{ (item.test.date|localtime).strftime('%m/%d') }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Mock Test Score (%)',
+            data: [{% for item in mock_tests|reverse %}{{ item.test.percentage }}{% if not loop.last %}, {% endif %}{% endfor %}],
+            borderColor: '#0066cc',
+            backgroundColor: 'rgba(0, 102, 204, 0.1)',
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: true,
+                labels: {
+                    font: {
+                        family: "'JetBrains Mono', monospace"
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                    font: {
+                        family: "'JetBrains Mono', monospace"
+                    }
+                }
+            },
+            x: {
+                ticks: {
+                    font: {
+                        family: "'JetBrains Mono', monospace"
+                    }
+                }
+            }
+        }
+    }
+});
+{% endif %}
+
+function clearMockTests() {
+    if (confirm('Are you sure you want to clear all mock test results? This cannot be undone.')) {
+        fetch('{{ url_for("clear_mock_tests") }}', {
+            method: 'POST'
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Error clearing mock tests. Please try again.');
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

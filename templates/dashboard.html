@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Learn German{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body p-5">
+        <h1 class="text-center mb-5">What would you like to do?</h1>
+
+        <div class="row g-4">
+            <!-- See My Progress (full width) -->
+            <div class="col-md-12">
+                <a href="{{ url_for('progress') }}" class="text-decoration-none">
+                    <div class="card hover-card">
+                        <div class="card-body text-center p-4">
+                            <h3>📊 See My Progress</h3>
+                            <p class="text-muted">View your learning statistics and test results</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Learn Vocabulary and Learn Verbs (side by side) -->
+            <div class="col-md-6">
+                <a href="{{ url_for('learn_vocabulary') }}" class="text-decoration-none">
+                    <div class="card h-100 hover-card">
+                        <div class="card-body text-center p-4">
+                            <h3>📚 Learn Vocabulary</h3>
+                            <p class="text-muted">Study German words and their meanings</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-6">
+                <a href="{{ url_for('learn_verbs') }}" class="text-decoration-none">
+                    <div class="card h-100 hover-card">
+                        <div class="card-body text-center p-4">
+                            <h3>✏️ Learn Verbs</h3>
+                            <p class="text-muted">Practice verb conjugations in present tense</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Mock Test and Real Test (side by side) -->
+            <div class="col-md-6">
+                <a href="{{ url_for('mock_test_selection') }}" class="text-decoration-none">
+                    <div class="card h-100 hover-card">
+                        <div class="card-body text-center p-4">
+                            <h3>🎯 Mock Test</h3>
+                            <p class="text-muted">Take practice tests with instant feedback</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-6">
+                <a href="{{ url_for('real_test_selection') }}" class="text-decoration-none">
+                    <div class="card h-100 hover-card">
+                        <div class="card-body text-center p-4">
+                            <h3>🏆 Real Test</h3>
+                            <p class="text-muted">Take a graded test to measure your progress</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            {% if is_admin %}
+            <div class="col-md-12">
+                <a href="{{ url_for('admin_dashboard') }}" class="text-decoration-none">
+                    <div class="card hover-card bg-dark text-white">
+                        <div class="card-body text-center p-4">
+                            <h3>⚙️ Admin Dashboard</h3>
+                            <p class="text-muted">Manage words and verbs</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.hover-card {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.hover-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+</style>
+{% endblock %}

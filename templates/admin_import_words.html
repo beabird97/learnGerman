@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Import Words - Learn German{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body p-5">
+        <h1 class="text-center mb-4">Import Words (CSV)</h1>
+
+        <div class="alert alert-info mb-4">
+            <strong>CSV Format:</strong> article,german,english,level<br>
+            <strong>Example:</strong>
+            <pre class="mb-0 mt-2" style="background: white; padding: 10px; border-radius: 5px;">der,Hund,dog,A1
+die,Katze,cat,A1
+das,Haus,house,A2</pre>
+            <small class="mt-2 d-block">
+                <strong>Valid levels:</strong> A1, A2, B1, B2, C1 (defaults to A1 if not specified)<br>
+                <strong>Note:</strong> Duplicates (same german word and article) will be skipped.
+            </small>
+        </div>
+
+        <form method="POST">
+            <div class="mb-4">
+                <label for="csv_data" class="form-label"><strong>CSV Data:</strong></label>
+                <textarea name="csv_data" id="csv_data" class="form-control" rows="15" required
+                          placeholder="Enter CSV data here (one word per line)..."
+                          style="font-family: 'JetBrains Mono', monospace;"></textarea>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">← Back to Admin</a>
+                <button type="submit" class="btn btn-primary">Import Words</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

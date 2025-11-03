@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Real Test - Learn German{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body p-5">
+        <div class="text-center mb-4">
+            <h5>Real {{ test_type.title() }} Test</h5>
+            <h6 class="text-muted">Question {{ question_num }} of {{ total }}</h6>
+            <div class="progress mt-3" style="height: 10px;">
+                <div class="progress-bar" role="progressbar"
+                     style="width: {{ (question_num / total * 100)|round }}%; background: #0066cc;">
+                </div>
+            </div>
+        </div>
+
+        <div class="word-card">
+            {% if test_type == 'vocabulary' %}
+                <div class="german-word">{{ question.english }}</div>
+                <p class="text-muted">What is this in German? (include article)</p>
+
+                <form id="testForm" onsubmit="submitAnswer(event)">
+                    <div class="mt-4">
+                        <input type="text" name="answer" id="answerInput" class="form-control form-control-lg text-center"
+                               placeholder="Type your answer..." required autofocus>
+                    </div>
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-danger btn-lg" id="submitBtn">
+                            {% if question_num == total %}
+                            Submit & Finish Test
+                            {% else %}
+                            Submit & Continue
+                            {% endif %}
+                        </button>
+                    </div>
+                </form>
+            {% else %}
+                <div class="german-word">{{ question.english }}</div>
+                <p class="text-muted">Conjugate this verb in present tense</p>
+
+                <form id="testForm" onsubmit="submitAnswer(event)">
+                    <table class="table mt-4">
+                        <tbody>
+                            <tr>
+                                <td class="pronoun" style="width: 150px;">ich</td>
+                                <td><input type="text" name="ich" class="form-control" required autofocus></td>
+                            </tr>
+                            <tr>
+                                <td class="pronoun">du</td>
+                                <td><input type="text" name="du" class="form-control" required></td>
+                            </tr>
+                            <tr>
+                                <td class="pronoun">er/sie/es</td>
+                                <td><input type="text" name="er_sie_es" class="form-control" required></td>
+                            </tr>
+                            <tr>
+                                <td class="pronoun">wir</td>
+                                <td><input type="text" name="wir" class="form-control" required></td>
+                            </tr>
+                            <tr>
+                                <td class="pronoun">ihr</td>
+                                <td><input type="text" name="ihr" class="form-control" required></td>
+                            </tr>
+                            <tr>
+                                <td class="pronoun">sie/Sie</td>
+                                <td><input type="text" name="sie_Sie" class="form-control" required></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-danger btn-lg" id="submitBtn">
+                            {% if question_num == total %}
+                            Submit & Finish Test
+                            {% else %}
+                            Submit & Continue
+                            {% endif %}
+                        </button>
+                    </div>
+                </form>
+            {% endif %}
+        </div>
+
+        <div class="text-center mt-3">
+            <small class="text-muted">Answers cannot be changed after submission</small>
+        </div>
+    </div>
+</div>
+
+<script>
+function submitAnswer(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    const submitBtn = document.getElementById('submitBtn');
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+
+    fetch('{{ url_for("submit_real_answer") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.has_more) {
+            window.location.href = '{{ url_for("real_test", test_type=test_type) }}';
+        } else {
+            window.location.href = '{{ url_for("test_complete") }}';
+        }
+    });
+}
+</script>
+{% endblock %}

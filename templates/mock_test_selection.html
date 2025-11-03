@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Mock Test Selection - Learn German{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body p-5">
+        <h1 class="text-center mb-5">Choose Your Mock Test</h1>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <a href="{{ url_for('mock_test', test_type='vocabulary', direction='en-de') }}?restart=1" class="text-decoration-none">
+                    <div class="card h-100 hover-card">
+                        <div class="card-body text-center p-5">
+                            <h3 class="mb-4">📚 Vocabulary Test</h3>
+                            <p class="text-muted mb-4">Practice vocabulary with instant feedback</p>
+                            <p class="mb-0" style="font-size: 1.1rem;"><strong>English → German</strong></p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-6">
+                <a href="{{ url_for('mock_test', test_type='verb', direction='en-de') }}?restart=1" class="text-decoration-none">
+                    <div class="card h-100 hover-card">
+                        <div class="card-body text-center p-5">
+                            <h3 class="mb-4">✏️ Verb Test</h3>
+                            <p class="text-muted mb-4">Practice verb conjugations with instant feedback</p>
+                            <p class="mb-0" style="font-size: 1.1rem;"><strong>English → German</strong></p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.hover-card {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.hover-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+</style>
+{% endblock %}

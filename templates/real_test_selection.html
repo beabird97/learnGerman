@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Real Test Selection - Learn German{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body p-5">
+        <h1 class="text-center mb-5">Choose Your Real Test</h1>
+
+        <div class="alert alert-info mb-4">
+            <strong>Note:</strong> Real tests are graded and saved to your progress.
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <a href="{{ url_for('real_test', test_type='vocabulary') }}?restart=1" class="text-decoration-none">
+                    <div class="card h-100 hover-card">
+                        <div class="card-body text-center p-4">
+                            <h3>📚 Vocabulary Test</h3>
+                            <p class="text-muted">Test your vocabulary knowledge</p>
+                            <button class="btn btn-danger btn-lg mt-3">Start Test</button>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-6">
+                <a href="{{ url_for('real_test', test_type='verb') }}?restart=1" class="text-decoration-none">
+                    <div class="card h-100 hover-card">
+                        <div class="card-body text-center p-4">
+                            <h3>✏️ Verb Test</h3>
+                            <p class="text-muted">Test your verb conjugation skills</p>
+                            <button class="btn btn-danger btn-lg mt-3">Start Test</button>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.hover-card {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.hover-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+</style>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Learn German{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center" style="margin-top: 100px;">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body p-5">
+                <h2 class="text-center mb-4" style="color: #667eea;">Learn German</h2>
+
+                {% if error %}
+                <div class="alert alert-danger" role="alert">
+                    {{ error }}
+                </div>
+                {% endif %}
+
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 btn-lg">Login</button>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
