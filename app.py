@@ -274,6 +274,7 @@ def progress():
     for test in real_tests:
         wrong_answers = TestAnswer.query.filter_by(test_id=test.id, is_correct=False).all()
         mistakes = []
+        seen_verbs = set()  # Track verbs to avoid duplicates
         for answer in wrong_answers:
             if answer.word_id:
                 word = Word.query.get(answer.word_id)
@@ -281,8 +282,9 @@ def progress():
                     mistakes.append(f"{word.article} {word.german}")
             elif answer.verb_id:
                 verb = Verb.query.get(answer.verb_id)
-                if verb:
+                if verb and verb.id not in seen_verbs:
                     mistakes.append(verb.infinitive)
+                    seen_verbs.add(verb.id)
         real_tests_with_mistakes.append({
             'test': test,
             'mistakes': mistakes
@@ -296,6 +298,7 @@ def progress():
     for test in mock_tests_raw:
         wrong_answers = TestAnswer.query.filter_by(test_id=test.id, is_correct=False).all()
         mistakes = []
+        seen_verbs = set()  # Track verbs to avoid duplicates
         for answer in wrong_answers:
             if answer.word_id:
                 word = Word.query.get(answer.word_id)
@@ -303,8 +306,9 @@ def progress():
                     mistakes.append(f"{word.article} {word.german}")
             elif answer.verb_id:
                 verb = Verb.query.get(answer.verb_id)
-                if verb:
+                if verb and verb.id not in seen_verbs:
                     mistakes.append(verb.infinitive)
+                    seen_verbs.add(verb.id)
         mock_tests_with_mistakes.append({
             'test': test,
             'mistakes': mistakes
@@ -387,9 +391,9 @@ def mark_word_learned(word_id):
     # Update user's total words learned count
     user_progress = UserProgress.query.filter_by(user_id=session['user_id']).first()
     if user_progress:
-        # Count unique words seen by this user
-        words_seen = WordProgress.query.filter_by(user_id=session['user_id']).filter(WordProgress.times_seen > 0).count()
-        user_progress.words_learned = words_seen
+        # Count unique words where user got at least one correct (truly "learned")
+        words_learned = WordProgress.query.filter_by(user_id=session['user_id']).filter(WordProgress.times_correct > 0).count()
+        user_progress.words_learned = words_learned
 
     db.session.commit()
 
@@ -444,9 +448,9 @@ def check_word(word_id):
     # Update user's total words learned count
     user_progress = UserProgress.query.filter_by(user_id=session['user_id']).first()
     if user_progress:
-        # Count unique words seen by this user
-        words_seen = WordProgress.query.filter_by(user_id=session['user_id']).filter(WordProgress.times_seen > 0).count()
-        user_progress.words_learned = words_seen
+        # Count unique words where user got at least one correct (truly "learned")
+        words_learned = WordProgress.query.filter_by(user_id=session['user_id']).filter(WordProgress.times_correct > 0).count()
+        user_progress.words_learned = words_learned
 
     db.session.commit()
 
@@ -552,9 +556,9 @@ def check_verb(verb_id):
     # Update user's total verbs learned count
     user_progress = UserProgress.query.filter_by(user_id=session['user_id']).first()
     if user_progress:
-        # Count unique verbs seen by this user
-        verbs_seen = VerbProgress.query.filter_by(user_id=session['user_id']).filter(VerbProgress.times_seen > 0).count()
-        user_progress.verbs_learned = verbs_seen
+        # Count unique verbs where user got at least one correct (truly "learned")
+        verbs_learned = VerbProgress.query.filter_by(user_id=session['user_id']).filter(VerbProgress.times_correct > 0).count()
+        user_progress.verbs_learned = verbs_learned
 
     db.session.commit()
 
@@ -578,6 +582,7 @@ def mock_test(test_type, direction):
         session['is_mock'] = True
         session['current_question'] = 0
         session['test_score'] = 0
+        session['test_answers'] = []
 
         if test_type == 'vocabulary':
             # Use weighted selection based on priority_score
@@ -751,6 +756,30 @@ def submit_mock_answer():
 
     db.session.commit()
 
+    # Store answers for later display on progress page
+    if 'test_answers' not in session:
+        session['test_answers'] = []
+
+    if test_type == 'vocabulary':
+        # Store vocabulary answer
+        session['test_answers'].append({
+            'word_id': word.id,
+            'user_answer': user_answer,
+            'correct_answer': correct_answer,
+            'is_correct': is_correct,
+            'question': word.english
+        })
+    else:
+        # Store verb conjugation answers (one entry per conjugation for proper counting)
+        for conj in conjugations:
+            session['test_answers'].append({
+                'verb_id': verb.id,
+                'user_answer': results[conj]['user_answer'],
+                'correct_answer': results[conj]['correct_answer'],
+                'is_correct': results[conj]['correct'],
+                'question': f"{verb.english} ({conj})"
+            })
+
     session['current_question'] += 1
 
     # Return different format for verbs (with results) vs vocabulary
@@ -910,6 +939,7 @@ def test_complete():
         # Mock test - we already tracked score, now save it
         score = session.get('test_score', 0)
         total = len(session.get('test_questions', []))
+        answers = session.get('test_answers', [])
 
         if total > 0:
             percentage = (score / total) * 100
@@ -924,6 +954,20 @@ def test_complete():
                 percentage=percentage
             )
             db.session.add(test_result)
+            db.session.commit()
+
+            # Save individual answers for displaying mistakes on progress page
+            for answer in answers:
+                test_answer = TestAnswer(
+                    test_id=test_result.id,
+                    word_id=answer.get('word_id'),
+                    verb_id=answer.get('verb_id'),
+                    user_answer=answer['user_answer'],
+                    correct_answer=answer['correct_answer'],
+                    is_correct=answer['is_correct']
+                )
+                db.session.add(test_answer)
+
             db.session.commit()
     else:
         # Real test - calculate score and save
