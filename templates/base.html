@@ -190,6 +190,25 @@
         h1, h2, h3, h4, h5, h6 {
             color: #000;
         }
+
+        .header-grade {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .header-grade img {
+            width: 30px;
+            height: 30px;
+            object-fit: contain;
+        }
+
+        .header-grade-letter {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -199,6 +218,13 @@
         <nav class="navbar">
             <div class="container-fluid">
                 <span class="navbar-brand mb-0 h1">Learn German</span>
+                {% if overall_grade %}
+                <div class="header-grade">
+                    <img src="{{ url_for('static', filename='faces/' ~ overall_face) }}" alt="Grade {{ overall_grade }}">
+                    <span class="header-grade-letter grade-{{ overall_grade }}">{{ overall_grade }}</span>
+                    <span class="text-muted" style="font-size: 0.9rem;">({{ overall_percentage|round(1) }}%)</span>
+                </div>
+                {% endif %}
                 <div class="d-flex align-items-center">
                     <span class="me-3">Welcome, {{ session.username }}!</span>
                     <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-primary me-2">Dashboard</a>

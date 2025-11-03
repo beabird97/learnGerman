@@ -148,6 +148,88 @@ def get_face_and_comment(percentage):
         ]
         return 'face5.bmp', random.choice(comments)
 
+# Helper function to get overall grade from last 10 real tests
+def get_overall_grade(user_id):
+    """
+    Calculate overall grade from last 10 real tests.
+    Returns tuple of (letter_grade, percentage, face_filename) or (None, None, None) if no tests
+    """
+    # Get last 10 real tests (not mock)
+    real_tests = TestResult.query.filter_by(
+        user_id=user_id,
+        is_mock=False
+    ).order_by(TestResult.date.desc()).limit(10).all()
+
+    if not real_tests:
+        return None, None, None
+
+    # Calculate average percentage
+    total_percentage = sum(test.percentage for test in real_tests)
+    avg_percentage = total_percentage / len(real_tests)
+
+    # Determine letter grade
+    if avg_percentage >= 90:
+        letter_grade = 'A'
+    elif avg_percentage >= 80:
+        letter_grade = 'B'
+    elif avg_percentage >= 70:
+        letter_grade = 'C'
+    elif avg_percentage >= 60:
+        letter_grade = 'D'
+    else:
+        letter_grade = 'F'
+
+    # Get face for this percentage
+    face, _ = get_face_and_comment(avg_percentage)
+
+    return letter_grade, avg_percentage, face
+
+# Helper function to check if user can take a real test today
+def can_take_real_test(user_id, test_type):
+    """
+    Check if user can take a real test of given type today.
+    Returns True if allowed, False if already taken today.
+    test_type should be 'vocabulary' or 'verbs'
+    """
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # Check if user has taken this test type today
+    test_today = TestResult.query.filter(
+        TestResult.user_id == user_id,
+        TestResult.is_mock == False,
+        TestResult.test_type == test_type,
+        TestResult.date >= today_start
+    ).first()
+
+    return test_today is None
+
+# Helper function to cycle old tests (keep only last 10)
+def cycle_old_tests(user_id):
+    """
+    Delete tests beyond the last 10 for each test type (mock and real).
+    This keeps the database clean and ensures grade calculation uses recent tests.
+    """
+    # For each test type (vocabulary, verbs) and mock status (True, False)
+    for test_type in ['vocabulary', 'verbs']:
+        for is_mock in [True, False]:
+            # Get all tests for this combination, ordered by date descending
+            tests = TestResult.query.filter_by(
+                user_id=user_id,
+                test_type=test_type,
+                is_mock=is_mock
+            ).order_by(TestResult.date.desc()).all()
+
+            # If more than 10, delete the older ones
+            if len(tests) > 10:
+                tests_to_delete = tests[10:]  # Everything after the first 10
+                for test in tests_to_delete:
+                    # Delete associated test answers first
+                    TestAnswer.query.filter_by(test_id=test.id).delete()
+                    # Delete the test itself
+                    db.session.delete(test)
+
+    db.session.commit()
+
 # Activity tracking helper
 def update_activity():
     if 'user_id' in session and 'last_activity' in session:
@@ -210,6 +292,23 @@ def admin_required(f):
             return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
+
+# Context processor to inject overall grade into all templates
+@app.context_processor
+def inject_overall_grade():
+    """Make overall grade available to all templates"""
+    if 'user_id' in session:
+        letter_grade, percentage, face = get_overall_grade(session['user_id'])
+        return {
+            'overall_grade': letter_grade,
+            'overall_percentage': percentage,
+            'overall_face': face
+        }
+    return {
+        'overall_grade': None,
+        'overall_percentage': None,
+        'overall_face': None
+    }
 
 @app.before_request
 def before_request():
@@ -881,6 +980,12 @@ def real_test(test_type):
     if test_type not in ['vocabulary', 'verb']:
         return redirect(url_for('dashboard'))
 
+    # Check if user can take this test today (one real test per type per day)
+    test_type_normalized = 'verbs' if test_type == 'verb' else test_type
+    if not can_take_real_test(session['user_id'], test_type_normalized):
+        flash(f'You have already taken a real {test_type} test today. Come back tomorrow!', 'warning')
+        return redirect(url_for('dashboard'))
+
     # Initialize test session
     if 'test_questions' not in session or request.args.get('restart'):
         session['test_type'] = test_type
@@ -1047,6 +1152,9 @@ def test_complete():
                 db.session.add(test_answer)
 
             db.session.commit()
+
+            # Cycle old tests to keep only last 10 per type
+            cycle_old_tests(session['user_id'])
     else:
         # Real test - calculate score and save
         answers = session.get('test_answers', [])
@@ -1138,6 +1246,9 @@ def test_complete():
                     progress.last_seen = datetime.utcnow()
 
             db.session.commit()
+
+            # Cycle old tests to keep only last 10 per type
+            cycle_old_tests(session['user_id'])
 
     # Store answers and test type before clearing session
     test_answers = session.get('test_answers', []) if not is_mock else []
