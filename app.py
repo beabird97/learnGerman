@@ -37,6 +37,39 @@ def normalize_umlauts(text):
         normalized = normalized.replace(umlaut, replacement)
     return normalized
 
+def weighted_sample_without_replacement(items, weights, k):
+    """
+    Perform weighted sampling without replacement.
+
+    Args:
+        items: List of items to sample from
+        weights: List of weights corresponding to items
+        k: Number of items to select
+
+    Returns:
+        List of selected items (no duplicates)
+    """
+    if not items or k <= 0:
+        return []
+
+    # Convert to lists to allow modification
+    available_items = list(items)
+    available_weights = list(weights)
+    selected = []
+
+    # Sample k items (or all available if k > len(items))
+    for _ in range(min(k, len(available_items))):
+        # Use random.choices to pick one item based on current weights
+        chosen = random.choices(available_items, weights=available_weights, k=1)[0]
+        selected.append(chosen)
+
+        # Remove the chosen item and its weight from the available pool
+        idx = available_items.index(chosen)
+        available_items.pop(idx)
+        available_weights.pop(idx)
+
+    return selected
+
 # Helper function to get face and comment based on score
 def get_face_and_comment(percentage):
     """Return face filename and snarky comment based on test performance"""
@@ -597,7 +630,7 @@ def mock_test(test_type, direction):
 
             if word_weights:
                 words, weights = zip(*word_weights)
-                selected_words = random.choices(words, weights=weights, k=min(10, len(words)))
+                selected_words = weighted_sample_without_replacement(words, weights, k=10)
                 session['test_questions'] = [w.id for w in selected_words]
             else:
                 session['test_questions'] = []
@@ -614,7 +647,7 @@ def mock_test(test_type, direction):
 
             if verb_weights:
                 verbs, weights = zip(*verb_weights)
-                selected_verbs = random.choices(verbs, weights=weights, k=min(4, len(verbs)))
+                selected_verbs = weighted_sample_without_replacement(verbs, weights, k=4)
                 session['test_questions'] = [v.id for v in selected_verbs]
             else:
                 session['test_questions'] = []
@@ -823,7 +856,7 @@ def real_test(test_type):
 
             if word_weights:
                 words, weights = zip(*word_weights)
-                selected_words = random.choices(words, weights=weights, k=min(20, len(words)))
+                selected_words = weighted_sample_without_replacement(words, weights, k=20)
                 session['test_questions'] = [w.id for w in selected_words]
             else:
                 session['test_questions'] = []
@@ -840,7 +873,7 @@ def real_test(test_type):
 
             if verb_weights:
                 verbs, weights = zip(*verb_weights)
-                selected_verbs = random.choices(verbs, weights=weights, k=min(4, len(verbs)))
+                selected_verbs = weighted_sample_without_replacement(verbs, weights, k=4)
                 session['test_questions'] = [v.id for v in selected_verbs]
             else:
                 session['test_questions'] = []
