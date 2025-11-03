@@ -101,12 +101,7 @@
         <p class="text-muted text-center mb-5">No real tests taken yet. Take your first test!</p>
         {% endif %}
 
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="mb-0">Mock Test Trends (Last 10)</h3>
-            {% if mock_tests %}
-            <button onclick="clearMockTests()" class="btn btn-outline-danger btn-sm">Clear Mock Tests</button>
-            {% endif %}
-        </div>
+        <h3 class="mb-4">Mock Test Trends (Last 10)</h3>
         {% if mock_tests %}
         <div class="mb-4">
             <canvas id="mockTestChart" width="400" height="200"></canvas>
@@ -134,6 +129,18 @@
         {% else %}
         <p class="text-muted text-center">No mock tests taken yet. Practice makes perfect!</p>
         {% endif %}
+
+        <!-- Clear options at the very bottom -->
+        <div class="mt-5 pt-3" style="border-top: 1px solid #eee; text-align: center;">
+            <p style="font-size: 0.65rem; color: #999; margin-bottom: 5px;">Clear Data:</p>
+            <div style="font-size: 0.7rem;">
+                <a href="#" onclick="clearMockTests(); return false;" style="color: #999; text-decoration: none; margin: 0 10px;">Mock Tests</a>
+                <span style="color: #ddd;">|</span>
+                <a href="#" onclick="clearRealTests(); return false;" style="color: #999; text-decoration: none; margin: 0 10px;">Real Tests</a>
+                <span style="color: #ddd;">|</span>
+                <a href="#" onclick="clearAllProgress(); return false;" style="color: #999; text-decoration: none; margin: 0 10px;">All Progress</a>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -200,6 +207,38 @@ function clearMockTests() {
                 alert('Error clearing mock tests. Please try again.');
             }
         });
+    }
+}
+
+function clearRealTests() {
+    if (confirm('Are you sure you want to clear all real test results? This will reset your grade. This cannot be undone.')) {
+        fetch('{{ url_for("clear_real_tests") }}', {
+            method: 'POST'
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Error clearing real tests. Please try again.');
+            }
+        });
+    }
+}
+
+function clearAllProgress() {
+    if (confirm('Are you sure you want to clear ALL progress? This will delete all tests, word/verb progress, and learning history. THIS CANNOT BE UNDONE!')) {
+        if (confirm('FINAL WARNING: This will permanently delete ALL your learning data. Are you absolutely sure?')) {
+            fetch('{{ url_for("clear_all_progress") }}', {
+                method: 'POST'
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Error clearing progress. Please try again.');
+                }
+            });
+        }
     }
 }
 </script>

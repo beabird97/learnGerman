@@ -350,24 +350,38 @@ def dashboard():
         return redirect(url_for('login'))
     user = User.query.get(session['user_id'])
     is_admin = user.is_admin if user else False
+
+    # Redirect admin users to admin dashboard only
+    if is_admin:
+        return redirect(url_for('admin_dashboard'))
+
     return render_template('dashboard.html', username=session['username'], is_admin=is_admin)
 
 @app.route('/mock-test-selection')
 def mock_test_selection():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    user = User.query.get(session['user_id'])
+    if user and user.is_admin:
+        return redirect(url_for('admin_dashboard'))
     return render_template('mock_test_selection.html')
 
 @app.route('/real-test-selection')
 def real_test_selection():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    user = User.query.get(session['user_id'])
+    if user and user.is_admin:
+        return redirect(url_for('admin_dashboard'))
     return render_template('real_test_selection.html')
 
 @app.route('/progress')
 def progress():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    user = User.query.get(session['user_id'])
+    if user and user.is_admin:
+        return redirect(url_for('admin_dashboard'))
 
     user_progress = UserProgress.query.filter_by(user_id=session['user_id']).first()
 
@@ -464,8 +478,54 @@ def clear_mock_tests():
     if 'user_id' not in session:
         return jsonify({'error': 'Not logged in'}), 401
 
-    # Delete all mock test results for this user
+    # Delete all mock test results and associated answers for this user
+    mock_tests = TestResult.query.filter_by(user_id=session['user_id'], is_mock=True).all()
+    for test in mock_tests:
+        TestAnswer.query.filter_by(test_id=test.id).delete()
     TestResult.query.filter_by(user_id=session['user_id'], is_mock=True).delete()
+    db.session.commit()
+
+    return '', 204
+
+@app.route('/clear-real-tests', methods=['POST'])
+def clear_real_tests():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    # Delete all real test results and associated answers for this user
+    real_tests = TestResult.query.filter_by(user_id=session['user_id'], is_mock=False).all()
+    for test in real_tests:
+        TestAnswer.query.filter_by(test_id=test.id).delete()
+    TestResult.query.filter_by(user_id=session['user_id'], is_mock=False).delete()
+    db.session.commit()
+
+    return '', 204
+
+@app.route('/clear-all-progress', methods=['POST'])
+def clear_all_progress():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    # Delete all test results and associated answers
+    all_tests = TestResult.query.filter_by(user_id=session['user_id']).all()
+    for test in all_tests:
+        TestAnswer.query.filter_by(test_id=test.id).delete()
+    TestResult.query.filter_by(user_id=session['user_id']).delete()
+
+    # Delete all word and verb progress
+    WordProgress.query.filter_by(user_id=session['user_id']).delete()
+    VerbProgress.query.filter_by(user_id=session['user_id']).delete()
+
+    # Reset user progress
+    user_progress = UserProgress.query.filter_by(user_id=session['user_id']).first()
+    if user_progress:
+        user_progress.words_learned = 0
+        user_progress.verbs_learned = 0
+        user_progress.total_time_minutes = 0
+
+    # Delete activity logs
+    ActivityLog.query.filter_by(user_id=session['user_id']).delete()
+
     db.session.commit()
 
     return '', 204
@@ -474,6 +534,9 @@ def clear_mock_tests():
 def learn_vocabulary():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    user = User.query.get(session['user_id'])
+    if user and user.is_admin:
+        return redirect(url_for('admin_dashboard'))
 
     # Get all words and their progress
     all_words = Word.query.all()
@@ -619,6 +682,9 @@ def check_word(word_id):
 def learn_verbs():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    user = User.query.get(session['user_id'])
+    if user and user.is_admin:
+        return redirect(url_for('admin_dashboard'))
 
     # Get all verbs and their progress
     all_verbs = Verb.query.all()
