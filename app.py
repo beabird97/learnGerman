@@ -653,18 +653,19 @@ def submit_mock_answer():
                          'the ' + user_answer == correct_answer)
         else:
             # English to German - accept with or without article and with umlaut substitutions
-            correct_answer = word.german.lower()
-            correct_with_article = (word.article + ' ' + word.german).lower()
+            # For comparison, use lowercase
+            correct_answer_compare = word.german.lower()
+            correct_with_article_compare = (word.article + ' ' + word.german).lower()
 
             # Normalize both user answer and correct answers for comparison
             user_normalized = normalize_umlauts(user_answer)
-            correct_normalized = normalize_umlauts(correct_answer)
-            correct_with_article_normalized = normalize_umlauts(correct_with_article)
+            correct_normalized = normalize_umlauts(correct_answer_compare)
+            correct_with_article_normalized = normalize_umlauts(correct_with_article_compare)
 
             is_correct = (user_normalized == correct_normalized or
                          user_normalized == correct_with_article_normalized)
-            # For display purposes, show the version with article
-            correct_answer = correct_with_article
+            # For display purposes, show the version with article and proper capitalization
+            correct_answer = word.article + ' ' + word.german
 
         # Update progress
         progress = WordProgress.query.filter_by(user_id=session['user_id'], word_id=word.id).first()
