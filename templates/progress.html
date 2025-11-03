@@ -74,7 +74,13 @@
             </div>
         </div>
 
-        <h3 class="mb-4">Real Test Results</h3>
+        <div class="d-flex align-items-center mb-4">
+            <svg class="me-2" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4a7fc7" stroke-width="2" style="flex-shrink: 0; stroke-linecap: round; stroke-linejoin: round;">
+                <circle cx="12" cy="8" r="7"></circle>
+                <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+            </svg>
+            <h3 class="mb-0">Real Test Results</h3>
+        </div>
         {% if real_tests %}
         <div class="mb-5">
             {% for item in real_tests %}
@@ -101,7 +107,14 @@
         <p class="text-muted text-center mb-5">No real tests taken yet. Take your first test!</p>
         {% endif %}
 
-        <h3 class="mb-4">Mock Test Trends (Last 10)</h3>
+        <div class="d-flex align-items-center mb-4">
+            <svg class="me-2" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4a7fc7" stroke-width="2" style="flex-shrink: 0; stroke-linecap: round; stroke-linejoin: round;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="6"></circle>
+                <circle cx="12" cy="12" r="2"></circle>
+            </svg>
+            <h3 class="mb-0">Mock Test Trends (Last 10)</h3>
+        </div>
         {% if mock_tests %}
         <div class="mb-4">
             <canvas id="mockTestChart" width="400" height="200"></canvas>
