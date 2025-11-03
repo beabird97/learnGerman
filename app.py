@@ -381,24 +381,46 @@ def learn_vocabulary():
     user_progress = WordProgress.query.filter_by(user_id=session['user_id']).all()
     progress_dict = {p.word_id: p for p in user_progress}
 
-    # Build weighted selection list based on priority_score
-    # Unseen words get default score (100.0), seen words use their priority_score
-    word_weights = []
-    for word in all_words:
-        if word.id not in progress_dict:
-            # Unseen word - highest priority
-            weight = 100.0
-        else:
-            # Use the stored priority_score
-            weight = progress_dict[word.id].priority_score or 100.0
-        word_weights.append((word, weight))
+    # Get recently shown words from session (prevent immediate repeats)
+    recent_words = session.get('recent_vocabulary', [])
 
-    # Weighted random selection
-    if word_weights:
+    # Separate unseen and seen words
+    unseen_words = [w for w in all_words if w.id not in progress_dict and w.id not in recent_words]
+    seen_words = [w for w in all_words if w.id in progress_dict and w.id not in recent_words]
+
+    # Select word with priority system
+    selected_word = None
+
+    if unseen_words:
+        # Prioritize unseen words - 90% chance to pick unseen
+        if random.random() < 0.9 or not seen_words:
+            # Pick randomly from unseen words (equal probability)
+            selected_word = random.choice(unseen_words)
+        else:
+            # 10% chance to review a seen word (weighted by priority)
+            word_weights = [(w, progress_dict[w.id].priority_score or 100.0) for w in seen_words]
+            words, weights = zip(*word_weights)
+            selected_word = random.choices(words, weights=weights, k=1)[0]
+    elif seen_words:
+        # All words seen - use weighted selection based on priority
+        word_weights = [(w, progress_dict[w.id].priority_score or 100.0) for w in seen_words]
         words, weights = zip(*word_weights)
         selected_word = random.choices(words, weights=weights, k=1)[0]
-    else:
-        selected_word = None
+    elif all_words and recent_words:
+        # All words recently shown - clear history and start fresh
+        session['recent_vocabulary'] = []
+        # Pick any word with weighted selection
+        word_weights = []
+        for word in all_words:
+            weight = progress_dict[word.id].priority_score if word.id in progress_dict else 100.0
+            word_weights.append((word, weight))
+        words, weights = zip(*word_weights)
+        selected_word = random.choices(words, weights=weights, k=1)[0]
+
+    # Track this word in recent history (keep last 10)
+    if selected_word:
+        recent_words.append(selected_word.id)
+        session['recent_vocabulary'] = recent_words[-10:]
 
     return render_template('learn_vocabulary.html', word=selected_word)
 
@@ -504,23 +526,46 @@ def learn_verbs():
     user_progress = VerbProgress.query.filter_by(user_id=session['user_id']).all()
     progress_dict = {p.verb_id: p for p in user_progress}
 
-    # Build weighted selection list based on priority_score
-    verb_weights = []
-    for verb in all_verbs:
-        if verb.id not in progress_dict:
-            # Unseen verb - highest priority
-            weight = 100.0
-        else:
-            # Use the stored priority_score
-            weight = progress_dict[verb.id].priority_score or 100.0
-        verb_weights.append((verb, weight))
+    # Get recently shown verbs from session (prevent immediate repeats)
+    recent_verbs = session.get('recent_verbs', [])
 
-    # Weighted random selection
-    if verb_weights:
+    # Separate unseen and seen verbs
+    unseen_verbs = [v for v in all_verbs if v.id not in progress_dict and v.id not in recent_verbs]
+    seen_verbs = [v for v in all_verbs if v.id in progress_dict and v.id not in recent_verbs]
+
+    # Select verb with priority system
+    selected_verb = None
+
+    if unseen_verbs:
+        # Prioritize unseen verbs - 90% chance to pick unseen
+        if random.random() < 0.9 or not seen_verbs:
+            # Pick randomly from unseen verbs (equal probability)
+            selected_verb = random.choice(unseen_verbs)
+        else:
+            # 10% chance to review a seen verb (weighted by priority)
+            verb_weights = [(v, progress_dict[v.id].priority_score or 100.0) for v in seen_verbs]
+            verbs, weights = zip(*verb_weights)
+            selected_verb = random.choices(verbs, weights=weights, k=1)[0]
+    elif seen_verbs:
+        # All verbs seen - use weighted selection based on priority
+        verb_weights = [(v, progress_dict[v.id].priority_score or 100.0) for v in seen_verbs]
         verbs, weights = zip(*verb_weights)
         selected_verb = random.choices(verbs, weights=weights, k=1)[0]
-    else:
-        selected_verb = None
+    elif all_verbs and recent_verbs:
+        # All verbs recently shown - clear history and start fresh
+        session['recent_verbs'] = []
+        # Pick any verb with weighted selection
+        verb_weights = []
+        for verb in all_verbs:
+            weight = progress_dict[verb.id].priority_score if verb.id in progress_dict else 100.0
+            verb_weights.append((verb, weight))
+        verbs, weights = zip(*verb_weights)
+        selected_verb = random.choices(verbs, weights=weights, k=1)[0]
+
+    # Track this verb in recent history (keep last 10)
+    if selected_verb:
+        recent_verbs.append(selected_verb.id)
+        session['recent_verbs'] = recent_verbs[-10:]
 
     return render_template('learn_verbs.html', verb=selected_verb)
 
